@@ -1,0 +1,30 @@
+From c13d2917a731d41950ade9973b2d1b58f5ec4d37 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E6=B4=AA=E6=99=93=E9=BE=99?= <imhongxiaolong@gmail.com>
+Date: Tue, 24 Mar 2020 18:10:10 +0800
+Subject: [PATCH] Tolerate '\0' in URI when mapping URI to path.
+
+If a rewritten URI has the null character, only a part of URI was
+copied to a memory buffer allocated for path.  In some setups this
+could be exploited to expose uninitialized memory via the Location
+header.
+---
+ src/http/ngx_http_core_module.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/http/ngx_http_core_module.c b/src/http/ngx_http_core_module.c
+index 0de52240..c61b6965 100644
+--- a/src/http/ngx_http_core_module.c
++++ b/src/http/ngx_http_core_module.c
+@@ -2020,7 +2020,8 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
+         }
+     }
+ 
+-    last = ngx_cpystrn(last, r->uri.data + alias, r->uri.len - alias + 1);
++    last = ngx_copy(last, r->uri.data + alias, r->uri.len - alias);
++    *last = '\0';
+ 
+     return last;
+ }
+-- 
+2.18.0
+

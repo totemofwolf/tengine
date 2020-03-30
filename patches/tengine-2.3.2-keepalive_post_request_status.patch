@@ -1,0 +1,28 @@
+From fde495754a400257c6ea2cc80abc7d7a20ac05c5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E8=91=A3=E5=AE=87?= <fishgege@users.noreply.github.com>
+Date: Sun, 8 Dec 2019 23:53:25 +0800
+Subject: [PATCH] bugfix: POST request with keepalive peer cause 400 response
+
+When the POST data sent is incomplete, the peer cannot be reused and should be discarded, otherwise the upstream server will discard some data from next request which use the same peer
+---
+ .../ngx_http_upstream_keepalive_module.c                      | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/modules/ngx_http_upstream_keepalive_module/ngx_http_upstream_keepalive_module.c b/modules/ngx_http_upstream_keepalive_module/ngx_http_upstream_keepalive_module.c
+index ee96149c..bfe4a401 100644
+--- a/modules/ngx_http_upstream_keepalive_module/ngx_http_upstream_keepalive_module.c
++++ b/modules/ngx_http_upstream_keepalive_module/ngx_http_upstream_keepalive_module.c
+@@ -784,6 +784,10 @@ ngx_http_upstream_free_keepalive_peer(ngx_peer_connection_t *pc, void *data,
+         goto closed;
+     }
+ 
++    if (!u->request_body_sent) {
++        goto closed;
++    }
++
+     if (ngx_terminate || ngx_exiting) {
+         goto closed;
+     }
+-- 
+2.18.0
+
